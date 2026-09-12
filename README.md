@@ -38,7 +38,9 @@ Queries are in `/analyses`, owners in `models/_exposures.yml`.
 
 **Q1 — Product.** Acceptance falls from 74.6% to 64.6% between the two four-week windows, but two accounts out of eighty carry seven of those ten points. With `ws_0041` and `ws_0051` removed the residual fall is 3.0 points on 408 recent ratings, which is 1.2 standard errors and not distinguishable from chance.
 
-This says the drop is account-specific. It does not say the 71–74% level is good. And nothing can be said about `amministrativo`, which is below the reliability floor in every week of the period.
+This says the drop is account-specific. It does not say the 71–74% level is good.
+
+**Where Product should focus.** This data doesn't point at a module. The platform-level decline is concentrated in two accounts, and at current rating volumes most module-weeks cannot support a before-and-after comparison at all: `amministrativo` clears the reliability floor in no week of the period. What the data supports is raising rating coverage until module-level changes become detectable. Acting on a module today would be acting on noise.
 
 **Q2 — Customer Success.** The risk score is the change in acceptance rate between the two windows, for accounts with at least ten ratings in both. `ws_0041` (DE, enterprise) falls 53.3 points on 166 then 56 ratings, `ws_0051` (IT, enterprise) falls 45.8 points on 26 then 11. The next account falls 12.9. Any threshold between 15 and 45 points selects the same two.
 

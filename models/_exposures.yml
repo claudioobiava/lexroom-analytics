@@ -27,6 +27,11 @@ exposures:
       The amministrativo module clears the reliability floor in no week at all.
       That is itself an answer: nothing can be said about it, and that has to be
       said rather than glossed over.
+
+      Where Product should focus: not on a module. At current rating volumes most
+      module-weeks cannot support a before-and-after comparison, so the action this
+      data supports is raising rating coverage until module-level changes become
+      detectable.
     depends_on:
       - ref('mart_ama_module_weekly')
     owner:
