@@ -11,7 +11,8 @@ exposures:
       weeks? Where should the Product team focus?"
 
       Answered from mart_ama_module_weekly. The query is in
-      analyses/q1_module_quality_trend.sql.
+      analyses/q1a_module_quality_trend.sql. The account-level attribution
+      behind that answer is in analyses/q1b_acceptance_drop_attribution.sql.
 
       What the data supports: platform acceptance falls from 74.6% to 64.6%
       between the two four-week windows, but two accounts out of eighty carry
