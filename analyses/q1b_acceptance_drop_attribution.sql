@@ -1,3 +1,5 @@
+-- Q1 — Product: which accounts the platform-wide acceptance drop comes from, and whether the residual is distinguishable from chance.
+
 with weeks_ranked as(
     select
         answer_week,

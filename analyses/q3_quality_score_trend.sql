@@ -1,12 +1,4 @@
--- Q3 — Leadership: a North Star metric for AMA quality.
--- "Propose a single composite metric that reflects AMA quality over time.
--- Define it precisely (formula, grain, window). Show its trend for the last 8
--- weeks."
---
--- Reads mart_ama_quality_weekly. The score is the product of the two components
--- next to it, divided by 100, so any row can be checked by hand. Coverage is
--- outside the formula and says how much weight the week can carry: the final
--- week rests on 20 ratings.
+-- Q3 — Leadership: the AMA Quality Score and its trend over the last 8 weeks.
 
 with last_eight_weeks as (
 
