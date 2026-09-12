@@ -1,0 +1,96 @@
+version: 2
+
+models:
+
+  - name: int_ama_answers
+    description: >
+      One row per AMA answer, with the feedback it received and the account it
+      belongs to attached. This is the model every mart reads: the three marts
+      differ in grain and in scope, not in how a rating, an acceptance or an
+      unknown account is defined. Those three decisions are made here, once.
+
+      The join to feedback is a left join, so an answer nobody rated is still a
+      row. Losing it would turn "26.9% of answers get a vote" into a silent
+      filter on every downstream number.
+    columns:
+
+      - name: event_id
+        description: >
+          Identifier of the answer. This is the grain of the model, and it stays
+          unique after the join to feedback. The uniqueness test here is the
+          fan-out guard for the whole project: if one answer ever collected two
+          feedback rows, every count downstream would inflate without raising an
+          error.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: User who asked the question.
+
+      - name: workspace_id
+        description: Account the answer belongs to, as recorded on the event.
+
+      - name: has_unknown_workspace
+        description: >
+          True when the answer's workspace id is not in the workspace table,
+          which is the case for eight answers. Only mart_workspace_risk excludes
+          them, because an account that does not exist cannot be assigned to a
+          CSM. The other two marts keep them: they are still answers the product
+          produced.
+        data_tests:
+          - not_null
+
+      - name: module_tag
+        description: Legal module the question was routed to, already normalised in staging.
+
+      - name: answer_week
+        description: '{{ doc("def_answer_week") }}'
+
+      - name: answered_at
+        description: >
+          Timestamp of the answer, in UTC. Renamed from created_at, which in the
+          raw layer means five different things across five tables.
+
+      - name: response_latency_ms
+        description: Answer latency in milliseconds, NULL where the staging layer treated the incoming value as a defect.
+
+      - name: response_tokens
+        description: Length of the generated answer in tokens.
+
+      - name: retrieved_chunks
+        description: Number of source passages retrieved for the answer.
+
+      - name: is_cached
+        description: Whether the answer was served from cache instead of being generated.
+
+      - name: clean_delivery
+        description: '{{ doc("def_clean_delivery") }}'
+
+      - name: thumbs_raw
+        description: The vote exactly as received, NULL when the answer was never rated. Kept for investigation, never for counting.
+
+      - name: has_valid_rating
+        description: '{{ doc("def_rated_answer") }}'
+        data_tests:
+          - not_null
+
+      - name: positive_rating
+        description: '{{ doc("def_accepted_answer") }}'
+        data_tests:
+          - not_null
+
+      - name: reason_tag
+        description: Optional reason the user selected when voting.
+
+      - name: feedback_at
+        description: Timestamp of the feedback submission, NULL when the answer was never rated.
+
+      - name: country
+        description: Country of the account, or 'unknown', from the workspace table.
+
+      - name: plan
+        description: Commercial plan of the account.
+
+      - name: firm_size_bucket
+        description: Size band of the firm holding the account.

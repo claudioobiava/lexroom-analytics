@@ -1,0 +1,85 @@
+version: 2
+
+exposures:
+
+  - name: q1_product_module_quality
+    label: "Q1 — Product: AMA quality trend per module"
+    type: analysis
+    maturity: medium
+    description: |
+      "For each legal module, what is the weekly quality trend over the last 8
+      weeks? Where should the Product team focus?"
+
+      Answered from mart_ama_module_weekly. The query is in
+      analyses/q1_module_quality_trend.sql.
+
+      What the data supports: platform acceptance falls from 74.6% to 64.6%
+      between the two four-week windows, but two accounts out of eighty carry
+      seven of those ten points. With those two removed the residual fall is 3.0
+      points on 408 recent ratings, which is 1.2 standard errors and therefore
+      indistinguishable from chance. There is no evidence of a module-wide or
+      product-wide regression.
+
+      What it does not support: any statement that the 71-74% acceptance level
+      is satisfactory. The finding is about the change, not the level.
+
+      The amministrativo module clears the reliability floor in no week at all.
+      That is itself an answer: nothing can be said about it, and that has to be
+      said rather than glossed over.
+    depends_on:
+      - ref('mart_ama_module_weekly')
+    owner:
+      name: Product
+
+  - name: q2_customer_success_account_risk
+    label: "Q2 — Customer Success: account health risk"
+    type: analysis
+    maturity: low
+    description: |
+      "Which workspaces show signs of deteriorating experience? Define your own
+      'risk score' and justify the signals you chose."
+
+      Answered from mart_workspace_risk. The query is in
+      analyses/q2_accounts_at_risk.sql.
+
+      The risk score is the change in acceptance rate between the two four-week
+      windows, gated on having enough ratings in both. Two accounts are flagged:
+      ws_0041 (DE, enterprise, -53.3 points on 166 then 56 ratings) and ws_0051
+      (IT, enterprise, -45.8 points on 26 then 11 ratings). The next account
+      falls by 12.9 points.
+
+      Maturity is marked low on purpose. The mart only sees accounts that still
+      produce ratings, so an account that goes quiet never appears. Until a
+      usage-based signal sits next to the acceptance one, this view should be
+      read as "these accounts are getting worse answers", not as "these are the
+      accounts at risk".
+    depends_on:
+      - ref('mart_workspace_risk')
+    owner:
+      name: Customer Success
+
+  - name: q3_leadership_ama_north_star
+    label: "Q3 — Leadership: a North Star metric for AMA quality"
+    type: analysis
+    maturity: medium
+    description: |
+      "Propose a single composite metric that reflects AMA quality over time.
+      Define it precisely (formula, grain, window). Show its trend for the last
+      8 weeks."
+
+      Answered from mart_ama_quality_weekly. The query is in
+      analyses/q3_quality_score_trend.sql, and the metric is defined in
+      def_ama_quality_score.
+
+      The score is a product of two probabilities rather than a weighted sum, so
+      there are no weights to defend. It moves between 76.5 and 63.0 across the
+      eleven weeks in the data.
+
+      Read with the caveat that the delivery component has almost no variance in
+      this period, so today the score tracks acceptance closely. It earns its
+      second component by making a technical regression impossible to hide, not
+      by explaining anything now.
+    depends_on:
+      - ref('mart_ama_quality_weekly')
+    owner:
+      name: Leadership

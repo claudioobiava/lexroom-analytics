@@ -1,0 +1,8 @@
+raw_module_tag,module_tag,mapping_reason
+civile,civile,"Declared module (schema comment in the case brief)."
+penale,penale,"Declared module (schema comment in the case brief)."
+tributario,tributario,"Declared module (schema comment in the case brief)."
+lavoro,lavoro,"Declared module (schema comment in the case brief)."
+societario,societario,"Declared module (schema comment in the case brief)."
+amministrativo,amministrativo,"Declared module (schema comment in the case brief)."
+civil,civile,"85 answers. Spread across countries (0.80% DE, 0.54% ES, 0.81% IT) so no localisation reason behind."

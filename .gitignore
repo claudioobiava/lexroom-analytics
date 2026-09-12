@@ -1,0 +1,15 @@
+.venv/
+target/
+dbt_packages/
+logs/
+*.duckdb
+*.duckdb.wal
+.DS_Store
+.user.yml
+
+# Working material, not part of the deliverable
+FINDINGS.md
+query.sql
+query_exploration.sql
+explore.py
+.vscode/

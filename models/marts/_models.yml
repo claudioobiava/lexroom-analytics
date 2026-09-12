@@ -1,0 +1,195 @@
+version: 2
+
+models:
+
+  - name: mart_ama_module_weekly
+    description: |
+      One row per legal module per week. This is the Product view: it answers
+      where AMA quality is moving, module by module, over the weeks present in
+      the data.
+
+      Rows with no module are not filtered out. A module that stops being
+      recorded is a product problem, and a WHERE clause here would hide it.
+
+      Read has_minimum_sample before reading acceptance_rate_percentage. A week
+      with four votes produces a number, not a signal.
+    columns:
+
+      - name: module_tag
+        description: Legal module the questions were routed to.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['civile', 'penale', 'tributario', 'lavoro', 'amministrativo', 'societario']
+
+      - name: answer_week
+        description: '{{ doc("def_answer_week") }}'
+        data_tests:
+          - not_null
+
+      - name: answers
+        description: Answers produced for this module in this week, rated or not.
+
+      - name: rated_answers
+        description: '{{ doc("def_rated_answer") }}'
+
+      - name: positive_answers
+        description: '{{ doc("def_accepted_answer") }}'
+
+      - name: acceptance_rate_percentage
+        description: '{{ doc("def_acceptance_rate") }}'
+
+      - name: has_minimum_sample
+        description: >
+          True when the week holds at least the minimum number of rated answers
+          set by the min_rated_answers_weekly variable, currently 20. It is a
+          floor, not a precision guarantee: at 20 votes the 95% interval around
+          the rate is still roughly plus or minus 19 points. Raising the floor to
+          30 would have cost 7 readable module-weeks out of 48 for about 3.5
+          points of precision, which is why it sits at 20.
+        data_tests:
+          - not_null
+
+
+  - name: mart_workspace_risk
+    description: |
+      One row per workspace, comparing the four most recent weeks against the
+      four before them. This is the Customer Success view: it answers which
+      accounts are getting a worse experience than they used to.
+
+      The risk score is acceptance_change_points: the change in acceptance rate,
+      in percentage points, between the two windows. It is deliberately one
+      signal and not a weighted composite. Weights would have to be invented,
+      and a CSM cannot act on a number nobody can explain.
+
+      {{ doc('def_comparison_windows') }}
+
+      Known limitation. This mart only sees accounts that still produce ratings.
+      An account that stops using the product generates no feedback and
+      therefore never appears here, even though silence is itself a
+      deterioration signal. Covering it would need a usage-based signal
+      alongside the acceptance one; it was left out for time.
+
+      Accounts whose workspace id is missing from the workspace table are
+      excluded: an account that does not exist cannot be assigned to an owner.
+    columns:
+
+      - name: workspace_id
+        description: Identifier of the account. This is the grain of the model.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: country
+        description: Country of the account, carried through so a CSM can route the case without a second query.
+
+      - name: plan
+        description: Commercial plan of the account.
+
+      - name: firm_size_bucket
+        description: Size band of the firm holding the account.
+
+      - name: prior_rated_answers
+        description: Rated answers in the four weeks before the recent window.
+
+      - name: recent_rated_answers
+        description: >
+          Rated answers in the four most recent weeks. Published next to the
+          rates on purpose: a 45-point fall measured on 11 votes and a 53-point
+          fall measured on 56 votes are not the same finding, and the reader has
+          to be able to see which one they are looking at.
+
+      - name: prior_acceptance_rate_percentage
+        description: '{{ doc("def_acceptance_rate") }}'
+
+      - name: recent_acceptance_rate_percentage
+        description: Acceptance rate over the four most recent weeks, same formula as the prior window.
+
+      - name: acceptance_change_points
+        description: >
+          Recent acceptance rate minus prior acceptance rate, in percentage
+          points. Negative means the experience got worse. This is the risk score.
+
+      - name: has_comparable_windows
+        description: >
+          True when the account has at least min_rated_answers_per_window rated
+          answers, currently 10, in both windows. Below that the two rates are
+          not comparable and the change should not be read.
+        data_tests:
+          - not_null
+
+      - name: is_flagged_for_review
+        description: >
+          True when the windows are comparable and acceptance fell by at least
+          acceptance_drop_threshold_points, currently 20. The column is named for
+          what it triggers, a Customer Success review, not for a conclusion about
+          the account: the data shows a drop, not a cause.
+
+          The threshold is not load-bearing. Two accounts fall by 53.3 and 45.8
+          points, the next one by 12.9. Any threshold between 15 and 45 points
+          selects the same two accounts.
+        data_tests:
+          - not_null
+
+
+  - name: mart_ama_quality_weekly
+    description: |
+      One row per week, whole platform. This is the Leadership view: a single
+      number for AMA quality and its trend, with the two components it is built
+      from published beside it.
+
+      Window: calendar week, Monday to Sunday, UTC. The data holds eleven
+      complete weeks, 2 February to 19 April 2026; the brief asks for the last
+      eight, which are the last eight rows.
+
+      This mart keeps every answer, including the eight whose account is unknown.
+      It measures what the product delivered, not what can be billed to someone.
+    columns:
+
+      - name: answer_week
+        description: '{{ doc("def_answer_week") }}'
+        data_tests:
+          - unique
+          - not_null
+
+      - name: days_with_answers
+        description: >
+          Distinct days in the week that produced at least one answer. It is 7
+          for every week in this dataset, which rules out a partial first or last
+          week. It does not establish that event collection is complete, so it
+          bounds the explanation of the volume decline without settling it.
+        data_tests:
+          - not_null
+
+      - name: total_answers
+        description: Answers produced in the week, rated or not, clean or not.
+
+      - name: clean_answers
+        description: '{{ doc("def_clean_delivery") }}'
+
+      - name: rated_clean_answers
+        description: Cleanly delivered answers that carry a valid rating. Denominator of the satisfaction component.
+
+      - name: positive_clean_answers
+        description: Cleanly delivered answers rated positive. Numerator of the satisfaction component.
+
+      - name: clean_delivery_rate_percentage
+        description: Share of the week's answers delivered without a technical defect. First component of the score.
+
+      - name: accepted_rate_on_clean_percentage
+        description: >
+          Acceptance rate computed over cleanly delivered answers only. Second
+          component of the score. It is deliberately not the same number as
+          acceptance_rate_percentage in the other two marts, and carries a
+          different name for that reason.
+
+      - name: rating_coverage_percentage
+        description: >
+          Share of the week's answers that received a valid rating, around 27%
+          throughout. It is outside the formula: it does not measure quality, it
+          measures how much weight that week's score can carry.
+
+      - name: ama_quality_score
+        description: '{{ doc("def_ama_quality_score") }}'
+        data_tests:
+          - not_null

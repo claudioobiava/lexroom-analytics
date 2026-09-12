@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: lexroom_raw
+    description: >
+      Estrazioni CSV fornite con il case study, lette come tabelle esterne.
+      In produzione sarebbero le tabelle di atterraggio su BigQuery, alimentate
+      da Pub/Sub per eventi e feedback e dal database applicativo per utenti e
+      workspace.
+    meta:
+      external_location: "read_csv_auto('data/{name}.csv', header=true)"
+    tables:
+      - name: raw_events_ama
+      - name: raw_feedback_ama
+      - name: raw_users
+      - name: raw_workspaces
+      - name: raw_engineering_prs

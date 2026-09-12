@@ -1,0 +1,203 @@
+version: 2
+
+models:
+
+  - name: stg_ama_events
+    description: >
+      One row per AMA answer. Removes exact duplicate rows from the raw event
+      feed, normalises the legal module against the mapping seed, and flags the
+      three technical defects present in the data. It computes no rates and no
+      windows: those belong downstream.
+    columns:
+
+      - name: event_id
+        description: Identifier of the answer. This is the grain of the model.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: User who asked the question.
+
+      - name: workspace_id
+        description: >
+          Account the answer belongs to. Eight answers carry an id that does not
+          exist in the workspace table.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_workspaces')
+                field: workspace_id
+              config:
+                severity: warn
+                error_if: ">10"
+
+      - name: module_tag
+        description: >
+          Legal module the question was routed to, normalised through the
+          module_tag_mapping seed. NULL means the incoming value has no entry in
+          the seed. That is why this column is tested for null: a new spelling
+          appearing upstream has to surface as a failure, not as a silent gap in
+          a weekly report.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['civile', 'penale', 'tributario', 'lavoro', 'amministrativo', 'societario']
+
+      - name: raw_module_tag
+        description: >
+          The module value as it arrived, lowercased and trimmed. Kept so the
+          normalisation can be audited without going back to the CSV.
+
+      - name: response_latency_ms
+        description: >
+          Answer latency in milliseconds, NULL where the incoming value was a
+          sentinel or negative. Use this column for latency analysis;
+          response_latency_ms_raw is only for investigating the defects
+          themselves.
+
+      - name: response_latency_ms_raw
+        description: Latency exactly as received, defects included.
+
+      - name: response_tokens
+        description: Length of the generated answer in tokens.
+
+      - name: retrieved_chunks
+        description: >
+          Number of source passages retrieved for the answer. Tested for null
+          because has_no_retrieved_sources, and therefore clean_delivery, would
+          silently become NULL if it were missing.
+        data_tests:
+          - not_null
+
+      - name: is_cached
+        description: >
+          Whether the answer was served from cache instead of being generated.
+          Tested for null for the same reason as retrieved_chunks.
+        data_tests:
+          - not_null
+
+      - name: has_latency_sentinel
+        description: >
+          True when latency is exactly 900000 or 45000 ms. 33 answers. Whether
+          these are timeouts, defaults or real latencies is an open question for
+          Engineering.
+
+      - name: has_negative_latency
+        description: >
+          True when latency is below zero. 33 answers. The value is impossible,
+          so it is treated as missing rather than as a fast answer.
+
+      - name: has_no_retrieved_sources
+        description: >
+          True when no sources were retrieved and the answer was not served from
+          cache. 54 answers. A cached answer legitimately retrieves nothing, so
+          the cache case is excluded.
+
+      - name: clean_delivery
+        description: '{{ doc("def_clean_delivery") }}'
+
+      - name: answer_week
+        description: '{{ doc("def_answer_week") }}'
+
+      - name: created_at
+        description: >
+          Timestamp of the answer, in UTC. Renamed to answered_at downstream,
+          because created_at means a different thing in each of the five raw
+          tables.
+
+
+  - name: stg_ama_feedback
+    description: >
+      One row per feedback submission. Removes exact duplicates, keeps the
+      thumbs value as received separate from the two judgements derived from it,
+      and turns whitespace-only text into NULL.
+    columns:
+
+      - name: feedback_id
+        description: Identifier of the feedback submission. This is the grain of the model.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: event_id
+        description: >
+          Answer the feedback refers to. 50 rows point to an event id that is not
+          in the event feed.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_ama_events')
+                field: event_id
+              config:
+                severity: warn
+                error_if: ">60"
+
+      - name: user_id
+        description: User who submitted the feedback.
+
+      - name: thumbs_raw
+        description: >
+          The vote exactly as received. 16 rows carry -2, 0 or 2, outside the
+          documented contract of 1 and -1.
+
+      - name: valid_thumb
+        description: '{{ doc("def_rated_answer") }}'
+        data_tests:
+          - not_null
+
+      - name: is_positive
+        description: '{{ doc("def_accepted_answer") }}'
+
+      - name: reason_tag
+        description: Optional reason selected by the user. Empty strings are stored as NULL.
+
+      - name: free_text
+        description: Optional free-text comment. Empty strings are stored as NULL.
+
+      - name: feedback_at
+        description: Timestamp of the feedback submission, in UTC.
+
+
+  - name: stg_workspaces
+    description: >
+      One row per workspace, which is the account a firm holds. Replaces a
+      missing country with 'unknown' and keeps a flag beside it so the
+      substitution stays visible instead of passing as data.
+    columns:
+
+      - name: workspace_id
+        description: Identifier of the account. This is the grain of the model.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: country
+        description: >
+          Country the account operates in, or 'unknown' where the source value
+          was missing.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['IT', 'DE', 'ES', 'unknown']
+
+      - name: missing_country
+        description: True where country was substituted. Read it before grouping by country.
+
+      - name: plan
+        description: Commercial plan held by the account.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['free', 'pro', 'enterprise']
+
+      - name: firm_size_bucket
+        description: Size band of the firm, as recorded at signup.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['1-5', '6-20', '21-100', '100+']
+
+      - name: signup_date
+        description: Date the account was created.
